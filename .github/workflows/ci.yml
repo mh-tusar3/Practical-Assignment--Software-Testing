@@ -60,3 +60,32 @@ jobs:
             junit.xml
           if-no-files-found: warn
           retention-days: 14
+
+  # ---------------------------------------------------------------- 2. deploy
+  deploy:
+    needs: test                       # the gate: only runs if every test job passed
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:                      # never run two production deploys at once
+      group: production-deploy
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: ${{ vars.LIVE_URL }}
+    steps:
+      - name: Trigger Render deploy of this exact commit
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::error::Secret RENDER_DEPLOY_HOOK_URL is not set"; exit 1
+          fi
+          # The hook URL already contains ?key=..., so the commit is appended with &ref=
+          status=$(curl -sS -o response.json -w '%{http_code}' -X POST "${DEPLOY_HOOK}&ref=${GITHUB_SHA}")
+          echo "Render answered HTTP $status"
+          cat response.json || true
+          case "$status" in
+            200|201|202) echo "Deploy of ${GITHUB_SHA} requested." ;;
+            *) echo "::error::Deploy hook failed (HTTP $status)"; exit 1 ;;
+          esac
