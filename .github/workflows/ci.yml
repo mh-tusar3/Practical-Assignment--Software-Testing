@@ -89,3 +89,26 @@ jobs:
             200|201|202) echo "Deploy of ${GITHUB_SHA} requested." ;;
             *) echo "::error::Deploy hook failed (HTTP $status)"; exit 1 ;;
           esac
+
+  # ------------------------------------------------------------ 3. smoke-test
+  smoke-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Wait for the new SHA on the live site, then check 3 live requests
+        env:
+          LIVE_URL: ${{ vars.LIVE_URL }}
+        run: |
+          if [ -z "$LIVE_URL" ]; then
+            echo "::error::Repository variable LIVE_URL is not set"; exit 1
+          fi
+          python scripts/smoke_test.py --url "$LIVE_URL" --sha "$GITHUB_SHA" --timeout 900 --interval 15
