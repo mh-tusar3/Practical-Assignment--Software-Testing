@@ -1,0 +1,20 @@
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["htmlcov"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"tools/mutation_check.py" = ["E501"]
+
+[tool.ruff.format]
+# target.py is supplied by the instructor and must not be modified.
+exclude = ["target.py"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
