@@ -472,3 +472,217 @@ def test_to_int_infinity_raises_overflow_error():
     with pytest.raises(OverflowError):
         target.to_int(float("inf"))
 
+
+# --------------------------------------------------------------------------- #
+# 12. divide (math)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "expected"),
+    [
+        (10, 2, 5.0),
+        (7, 2, 3.5),  # true division, not floor division
+        (-9, 3, -3.0),
+        (9, -3, -3.0),
+        (-9, -3, 3.0),
+        (0, 5, 0.0),  # zero numerator is fine
+        (1, 4, 0.25),
+        (5, 0.5, 10.0),
+        (-7, 2, -3.5),  # floor division would give -4
+    ],
+)
+def test_divide_exact_values(a, b, expected):
+    result = target.divide(a, b)
+    assert result == expected
+    assert type(result) is float
+
+
+@pytest.mark.parametrize(("a", "b", "expected"), [(1, 3, 0.3333333333), (2, 3, 0.6666666667)])
+def test_divide_inexact_values(a, b, expected):
+    assert target.divide(a, b) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(("a", "b"), [(5, 0), (0, 0), (5, 0.0), (-1, -0.0)])
+def test_divide_by_zero_raises_zero_division_error(a, b):
+    with pytest.raises(ZeroDivisionError, match=r"^cannot divide by zero$"):
+        target.divide(a, b)
+
+
+@pytest.mark.parametrize(("a", "b"), [("10", 2), (10, "2"), (None, 1)])
+def test_divide_wrong_type_raises_type_error(a, b):
+    with pytest.raises(TypeError):
+        target.divide(a, b)
+
+
+# --------------------------------------------------------------------------- #
+# 13. power (math)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("base", "exponent", "expected"),
+    [
+        (2, 3, 8),
+        (3, 2, 9),  # order of arguments matters
+        (2, 10, 1024),
+        (5, 1, 5),
+        (5, 0, 1),  # anything ** 0 == 1
+        (0, 0, 1),
+        (0, 5, 0),
+        (1, 1000, 1),
+        (-2, 3, -8),  # odd power keeps the sign
+        (-2, 2, 4),  # even power is positive
+        (10, 20, 10**20),  # exact big integer
+    ],
+)
+def test_power_integer_values(base, exponent, expected):
+    result = target.power(base, exponent)
+    assert result == expected
+    assert type(result) is int
+
+
+@pytest.mark.parametrize(
+    ("base", "exponent", "expected"),
+    [(2, -1, 0.5), (2, -2, 0.25), (9, 0.5, 3.0), (4, 1.5, 8.0), (2.5, 2, 6.25)],
+)
+def test_power_float_values(base, exponent, expected):
+    result = target.power(base, exponent)
+    assert result == expected
+    assert type(result) is float
+
+
+def test_power_inexact_value():
+    assert target.power(2, 0.5) == pytest.approx(math.sqrt(2))
+
+
+def test_power_zero_to_negative_raises_zero_division_error():
+    with pytest.raises(ZeroDivisionError):
+        target.power(0, -1)
+
+
+def test_power_negative_base_fractional_exponent_returns_complex():
+    # Documents current behaviour (see "Suspected bugs" in README).
+    result = target.power(-8, 1 / 3)
+    assert type(result) is complex
+    assert result == pytest.approx(complex(1, math.sqrt(3)))
+
+
+@pytest.mark.parametrize(("base", "exponent"), [("2", 3), (2, "3"), (None, 2)])
+def test_power_wrong_type_raises_type_error(base, exponent):
+    with pytest.raises(TypeError):
+        target.power(base, exponent)
+
+
+# --------------------------------------------------------------------------- #
+# 14. square_root (math)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("x", "expected"),
+    [(0, 0.0), (1, 1.0), (4, 2.0), (9, 3.0), (0.25, 0.5), (144, 12.0), (1e10, 1e5)],
+)
+def test_square_root_exact_values(x, expected):
+    result = target.square_root(x)
+    assert result == expected
+    assert type(result) is float
+
+
+@pytest.mark.parametrize(("x", "expected"), [(2, 1.41421356237), (3, 1.73205080757), (0.5, 0.70710678118)])
+def test_square_root_inexact_values(x, expected):
+    assert target.square_root(x) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("x", [-1, -0.0001, -4, -1e10])
+def test_square_root_negative_raises_value_error(x):
+    with pytest.raises(ValueError, match=r"^cannot take the square root of a negative number$"):
+        target.square_root(x)
+
+
+@pytest.mark.parametrize("x", ["4", None, [4]])
+def test_square_root_wrong_type_raises_type_error(x):
+    with pytest.raises(TypeError):
+        target.square_root(x)
+
+
+# --------------------------------------------------------------------------- #
+# 15. factorial (math)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("n", "expected"),
+    [
+        (0, 1),  # boundary: 0! == 1
+        (1, 1),
+        (2, 2),
+        (3, 6),
+        (5, 120),
+        (10, 3_628_800),
+        (20, 2_432_902_008_176_640_000),  # exact big integer
+    ],
+)
+def test_factorial_values(n, expected):
+    result = target.factorial(n)
+    assert result == expected
+    assert type(result) is int
+
+
+def test_factorial_matches_math_factorial():
+    for n in range(0, 30):
+        assert target.factorial(n) == math.factorial(n)
+
+
+@pytest.mark.parametrize("n", [-1, -5, -100])
+def test_factorial_negative_raises_value_error(n):
+    with pytest.raises(ValueError, match=r"^factorial is not defined for negative numbers$"):
+        target.factorial(n)
+
+
+@pytest.mark.parametrize("n", [3.5, 2.0, "5", None])
+def test_factorial_wrong_type_raises_type_error(n):
+    with pytest.raises(TypeError):
+        target.factorial(n)
+
+
+# --------------------------------------------------------------------------- #
+# 16. average (math)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("numbers", "expected"),
+    [
+        ([1, 2, 3], 2.0),
+        ([5], 5.0),  # single element
+        ([1, 2], 1.5),  # true division
+        ([-1, 1], 0.0),
+        ([-2, -4], -3.0),
+        ([0, 0, 0], 0.0),
+        ([2.5, 3.5], 3.0),
+        ([1, 2, 3, 4], 2.5),
+        ((10, 20), 15.0),  # tuple input
+    ],
+)
+def test_average_exact_values(numbers, expected):
+    result = target.average(numbers)
+    assert result == expected
+    assert type(result) is float
+
+
+@pytest.mark.parametrize(("numbers", "expected"), [([0.1, 0.2], 0.15), ([1, 2, 2], 1.6666666667)])
+def test_average_inexact_values(numbers, expected):
+    assert target.average(numbers) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("numbers", [[], ()])
+def test_average_empty_raises_value_error(numbers):
+    with pytest.raises(ValueError, match=r"^list is empty$"):
+        target.average(numbers)
+
+
+@pytest.mark.parametrize("numbers", [None, 5, ["a", "b"]])
+def test_average_wrong_type_raises_type_error(numbers):
+    with pytest.raises(TypeError):
+        target.average(numbers)
