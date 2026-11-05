@@ -689,4 +689,5 @@ def test_average_wrong_type_raises_type_error(numbers):
 
 
 def test_divide_red_run_demo():
-    assert target.divide(7, 2) == 3  # deliberately wrong: 7 / 2 is 3.5
+    assert target.divide(7, 2) == 3.5
+
